@@ -30,11 +30,24 @@
 	POSSIBILITY OF SUCH DAMAGE.
 */
 $shortcut_section = "haproxy";
+$dtstamp = new DateTime();
+function getTS(){
+	return microtime(true);
+}
+$timing[] = array('name' => "include1", timestamp => getTS());
 require_once("guiconfig.inc");
+$timing[] = array('name' => "include2", timestamp => getTS());
 require_once("haproxy.inc");
+$timing[] = array('name' => "include3", timestamp => getTS());
 require_once("haproxy_utils.inc");
+$timing[] = array('name' => "include4", timestamp => getTS());
 require_once("globals.inc");
+$timing[] = array('name' => "include5", timestamp => getTS());
 require_once("pkg_haproxy_tabs.inc");
+$timing[] = array('name' => "include6", timestamp => getTS());
+
+$timing = array();
+
 
 $simplefields = array('localstats_refreshtime','localstats_sticktable_refreshtime','log-send-hostname','ssldefaultdhparam');
 
@@ -43,6 +56,7 @@ if (!is_array($config['installedpackages']['haproxy']))
 
 
 if ($_POST) {
+$timing[] = array('name' => "post1", timestamp => getTS());
 	unset($input_errors);
 	$pconfig = $_POST;
 	
@@ -107,7 +121,9 @@ if ($_POST) {
 			write_config();
 		}
 	}
+$timing[] = array('name' => "post-end", timestamp => getTS());
 }
+$timing[] = array('name' => "config1", timestamp => getTS());
 
 $pconfig['enable'] = isset($config['installedpackages']['haproxy']['enable']);
 $pconfig['terminate_on_reload'] = isset($config['installedpackages']['haproxy']['terminate_on_reload']);
@@ -133,12 +149,15 @@ if (!$pconfig['logfacility'])
 if (!$pconfig['loglevel'])
 	$pconfig['loglevel'] = 'info';
 
+$timing[] = array('name' => "version", timestamp => getTS());
 $pf_version=substr(trim(file_get_contents("/etc/version")),0,3);
 if ($pf_version < 2.0)
 	$one_two = true;
 
+$timing[] = array('name' => "head", timestamp => getTS());
 $pgtitle = "Services: HAProxy: Settings";
 include("head.inc");
+$timing[] = array('name' => "head-done", timestamp => getTS());
 
 ?>
 <body link="#0000CC" vlink="#0000CC" alink="#0000CC">
@@ -199,14 +218,19 @@ function enable_change(enable_change) {
 					<strong>NOTE:</strong> setting this value too high will result in HAProxy not being able to allocate enough memory.<br/>
 					<p>
 				<?php
+$timing[] = array('name' => "mem-ps auxw", timestamp => getTS());
 					$memusage = trim(`ps auxw | grep haproxy | grep -v grep | awk '{ print $5 }'`);
 					if($memusage)
 						echo "Current memory usage: <b>{$memusage} kB.</b><br/>";
+$timing[] = array('name' => "mem-ps auxw done", timestamp => getTS());
 				?>
 					Current <a href='/system_advanced_sysctl.php'>'System Tunables'</a> settings.<br/>
 					&nbsp;&nbsp;'kern.maxfiles': <b><?=`sysctl kern.maxfiles | awk '{ print $2 }'`?></b><br/> 
 					&nbsp;&nbsp;'kern.maxfilesperproc': <b><?=`sysctl kern.maxfilesperproc | awk '{ print $2 }'`?></b><br/>
 					</p>
+<?php
+$timing[] = array('name' => "sysctl done", timestamp => getTS());
+?>					
 					Full memory usage will only show after all connections have actually been used.
 					</td><td>
 					<table style="border: 1px solid #000;">
@@ -276,6 +300,7 @@ function enable_change(enable_change) {
 						disabled
 					</option>
 				<?php
+$timing[] = array('name' => "carp", timestamp => getTS());
 					if(is_array($config['virtualip']['vip'])) {
 					foreach($config['virtualip']['vip'] as $carp):
 						if ($carp['mode'] != "carp") continue;
@@ -289,6 +314,7 @@ function enable_change(enable_change) {
 				<?php
 					endforeach;
 					}
+$timing[] = array('name' => "carp done", timestamp => getTS());
 				?>
 					</select>
 					<br/>
@@ -343,6 +369,7 @@ function enable_change(enable_change) {
 				<td class="vtable">
 					<select name="logfacility" class="formfld">
 				<?php
+$timing[] = array('name' => "facilities", timestamp => getTS());
 					$facilities = array("kern", "user", "mail", "daemon", "auth", "syslog", "lpr",
 						"news", "uucp", "cron", "auth2", "ftp", "ntp", "audit", "alert", "cron2",
 					       	"local0", "local1", "local2", "local3", "local4", "local5", "local6", "local7");
@@ -353,6 +380,7 @@ function enable_change(enable_change) {
 					</option>
 				<?php
 					endforeach;
+$timing[] = array('name' => "facilities done", timestamp => getTS());
 				?>
 					</select>
 				</td>
@@ -486,7 +514,10 @@ Minimum and default value is: 1024, bigger values might increase CPU usage.<br/>
 	</div>
 </table>
 
-<?php if(file_exists("/var/etc/haproxy/haproxy.cfg")): ?>
+<?php 
+$timing[] = array('name' => "load cfg", timestamp => getTS());
+
+if(file_exists("/var/etc/haproxy/haproxy.cfg")): ?>
 	<div id="configuration" style="display:none; border-style:dashed; padding: 8px;">
 		<b><i>/var/etc/haproxy.cfg file contents:</i></b>
 		<?php
@@ -498,7 +529,9 @@ Minimum and default value is: 1024, bigger values might increase CPU usage.<br/>
 	<div id="showconfiguration">
 		<a onClick="new Effect.Fade('showconfiguration'); new Effect.Appear('configuration');  setTimeout('scroll_after_fade();', 250); return false;" href="#">Show</a> automatically generated configuration.
 	</div>
-<?php endif; ?>
+<?php endif; 
+$timing[] = array('name' => "load cfg done", timestamp => getTS());
+?>
 
 </form>
 <script type="text/javascript">
@@ -509,6 +542,25 @@ Minimum and default value is: 1024, bigger values might increase CPU usage.<br/>
 enable_change(false);
 //-->
 </script>
-<?php include("fend.inc"); ?>
+<?php
+$timing[] = array('name' => "include end", timestamp => getTS());
+include("fend.inc"); 
+sleep(2);
+$timing[] = array('name' => "include end done", timestamp => getTS());
+echo "<pre>\n";
+function udate($format = 'u', $utimestamp = null) {
+        if (is_null($utimestamp))
+            $utimestamp = microtime(true);
+
+        $timestamp = floor($utimestamp);
+        $milliseconds = round(($utimestamp - $timestamp) * 1000000);
+
+        return date(preg_replace('`(?<!\\\\)u`', $milliseconds, $format), $timestamp);
+    }
+foreach($timing as $t){
+	echo "\n". udate('U = Y-m-d H:i:s.u', $t['timestamp']) ." {$t['name']}";
+}
+echo "\n</pre>";
+?>
 </body>
 </html>
